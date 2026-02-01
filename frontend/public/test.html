@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Search Test</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    #results { margin-top: 20px; white-space: pre-wrap; background: #f0f0f0; padding: 10px; }
+    button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+    input { padding: 10px; font-size: 16px; width: 300px; }
+  </style>
+</head>
+<body>
+  <h1>Direct API Search Test</h1>
+  <input type="text" id="query" value="housing zoning" placeholder="Enter search query">
+  <button onclick="doSearch()">Search</button>
+  <div id="results">Results will appear here...</div>
+
+  <script>
+    async function doSearch() {
+      const query = document.getElementById('query').value;
+      const resultsDiv = document.getElementById('results');
+
+      resultsDiv.textContent = 'Searching...';
+
+      try {
+        const response = await fetch('https://xaexvwrnkmjvsypqndhd.supabase.co/functions/v1/orchestrate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'search',
+            query: query,
+            limit: 5,
+            min_score: 0.5
+          })
+        });
+
+        const data = await response.json();
+        console.log('Response:', data);
+
+        if (data.success && data.data?.search_results?.length > 0) {
+          let html = 'Found ' + data.data.search_results.length + ' results:\n\n';
+          data.data.search_results.forEach((r, i) => {
+            html += (i+1) + '. Score: ' + (r.score * 100).toFixed(1) + '%\n';
+            html += '   ' + (r.document?.text || r.text).substring(0, 200) + '...\n\n';
+          });
+          resultsDiv.textContent = html;
+        } else {
+          resultsDiv.textContent = 'No results found.\n\nRaw response:\n' + JSON.stringify(data, null, 2);
+        }
+      } catch (err) {
+        resultsDiv.textContent = 'Error: ' + err.message;
+        console.error(err);
+      }
+    }
+  </script>
+</body>
+</html>
